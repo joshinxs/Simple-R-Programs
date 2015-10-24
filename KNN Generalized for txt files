@@ -1,0 +1,43 @@
+#                     KNNMethod_txt function definition
+# This function takes in 3 parameters namely data, train and K
+#data - is the data set file name with extension txt in "" located in working directory
+#train - is the size of trainig set in number of rows
+#K - is the K value for KNN method
+
+KNNMethod_txt<-function(data,train,K){
+
+  # Read txt data file and create train and test data sets  
+  data.file<-read.table(data, header=F)
+  data.train<-data.file[1:train,]
+  data.test<-data.file[-c(1:train),]
+  
+  #Initialize success counter
+  success<-0
+  
+  #Initialize function for calculating tangent distance
+  source("tangent.R")
+  
+  #For loop to calculate tangent distances of each data point in train set with test set
+  for (i in 1:(nrow(data.file)-train)) {
+    Dist<-c(100:(99+K))
+    Label<-c(1:K)
+    for (j in 1:train){
+      x<-distance(data.test[i,1:(ncol(data.file)-1)],data.train[j,1:(ncol(data.file)-1)])
+      
+      #if new tangent distance is less than previous measured value then replace with new value
+      if(x<Dist[which.max(Dist)]){
+        y<-which.max(Dist)
+        Dist[y]<-x
+        Label[y]<-data.train[j,ncol(data.file)]
+      }
+    }
+    
+    #Identify final label prediction for given test data point
+    if(data.test[i,ncol(data.file)]==unique(Label)[which.max(tabulate(match(Label,unique(Label))))]){
+      success=success+1
+    }
+  }
+  #Print accuracy score of method
+  result <- paste(round(success*100/i,digits=2), "%", sep = "")
+  return(c("Test Accuracy: ",result))
+}
