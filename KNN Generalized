@@ -1,0 +1,42 @@
+#                     KNNMethod function definition
+# This function takes in 3 parameters namely data, train and K
+#data - is the data set file name with extension in "" located in working directory
+#train - is the size of trainig set in number of rows
+#K - is the K value for KNN method
+
+KNNMethod<-function(data,train,K){
+
+# Read csv data file and create train and test data sets  
+data.file<-read.csv(data, header=F)
+data.train<-data.file[1:train,]
+data.test<-data.file[-c(1:train),]
+
+#Initialize success counter
+success<-0
+
+#For loop to calculate Euclidean distances of each data point in train set with test set
+for (i in 1:(nrow(data.file)-train)) {
+  Eucdist<-c(100:(99+K))
+  Label<-c(1:K)
+  for (j in 1:train){
+    x<-sqrt(sum((data.test[i,1:(ncol(data.file)-1)]-data.train[j,1:(ncol(data.file)-1)])^2))
+    
+    
+    #if new Eucliden distance is less than previous measured value then replace with new value
+    if(x<Eucdist[which.max(Eucdist)]){
+      y<-which.max(Eucdist)
+      Eucdist[y]<-x
+    #Store label information of new minimum Euclidean distance data point  
+      Label[y]<-data.train[j,ncol(data.file)]
+    }
+  }
+  #Identify final label prediction for given test data point
+  if(data.test[i,ncol(data.file)]==if(sum(Label)<0){-1} else {1})
+     {
+    success=success+1
+  }
+}
+#Print accuracy score of method
+result <- paste(round(success*100/i,digits=2), "%", sep = "")
+return(c("Test Accuracy: ",result))
+ }
