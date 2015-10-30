@@ -2,7 +2,7 @@
 # This function takes in 3 parameters namely data, train and K
 #data - is the data set file name with extension in "" located in working directory
 #train - is the size of trainig set in number of rows
-#K - is the K value for KNN method
+#K - is the K value for KNN method#
 
 KNNMethod<-function(data,train,K){
 
