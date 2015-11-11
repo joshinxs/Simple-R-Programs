@@ -1,0 +1,48 @@
+DAQ<-function(train,test,label,testlabel){
+#This function calculates the accuracy of QDA method for prediction for data provided over a general p
+#Following are definiton of the input parameters:
+#train: the training data
+#test: the test data or data whose label is to be predicted
+#label: labels for training data set
+#testlabel: this is the true labels for test data for purpose of measuring accuracy of prediction by QDA  
+
+p<-ncol(as.matrix(test))
+
+#Create and initialize 3-dimensional Covariance matrix  
+covmat<-array(0,dim=c(as.numeric(p),as.numeric(p),length(unique(label))))
+#Create and initialize output matrix  
+op<-matrix(0,nrow=nrow(as.matrix(test)),ncol=length(unique(label)))
+
+#Calculate means for each row of training data set over all label classes  
+  means<-matrix(c(apply(as.matrix(train[(label==sort(unique(label))[1]),]),2,mean),apply(as.matrix(train[label==(sort(unique(label))[2]),]),2,mean)),ncol = ncol(train),byrow=T)
+
+#Calculate probability of label classes over training set  
+  probs<-matrix(c(nrow(as.matrix(train[(label==sort(unique(label))[1]),]))/nrow(train),nrow(as.matrix(train[(label==sort(unique(label))[2]),]))/nrow(train)),nrow=length(unique(label)))
+
+
+ #Loop through the label classes   
+    for (i in 1:length(unique(label))){
+      
+      #Define the covariance matrix for the selected label class
+      covmat[,,i]<-cov(as.matrix(train[(label==sort(unique(label))[i]),]),y=NULL,use="everything",method = c("pearson","kendall","spearman"))
+    
+      #Determine the QDA function value for selected label class for each test data row and store in op[]
+      op[,i]<-  (-(0.5)*apply((as.matrix(test)%*%as.matrix(solve(covmat[,,i]))%*%t(as.matrix(test)))*diag(nrow(as.matrix(test))),1,sum)+
+                (as.matrix(test)%*%solve(covmat[,,i])%*%as.matrix(means[i,]))-
+                as.matrix(rep((0.5)*(means[i,]%*%solve(covmat[,,i])%*%as.matrix(means[i,])),nrow(as.matrix(test))))-
+                as.matrix(rep((0.5)*log(det(as.matrix(covmat[,,i]))),nrow(as.matrix(test))))+
+                as.matrix(rep(log(probs[i,]),nrow(as.matrix(test)))))
+    
+    }
+    
+    #Predict label for each test data row based on which function had greater value
+    result<-ifelse(op[,1]>op[,2],sort(unique(label))[1],sort(unique(label))[2])
+    
+    #Determine succes rate(accuracy) of prediction in comparison with true label
+    suc<-sum(ifelse(testlabel==result,1,0))
+    acc <- paste(round(suc*100/nrow(as.matrix(test)),digits=2), "%", sep = "")
+    print(c("QDA Test Accuracy: ",acc))
+}
+
+
+
