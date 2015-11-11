@@ -1,0 +1,31 @@
+DAL<-function(train,test,label,testlabel){
+#This function calculates the accuracy of QDA method for prediction for data provided over a general p
+#Following are definiton of the input parameters:
+#train: the training data
+#test: the test data or data whose label is to be predicted
+#label: labels for training data set
+#testlabel: this is the true labels for test data for purpose of measuring accuracy of prediction by QDA  
+  
+#Calculate means for each row of training data set over all label classes  
+  means<-matrix(c(apply(as.matrix(train[(label==sort(unique(label))[1]),]),2,mean),apply(as.matrix(train[label==(sort(unique(label))[2]),]),2,mean)),ncol = ncol(train),byrow=T)
+
+#Calculate probability of label classes over training set    
+  probs<-matrix(c(nrow(as.matrix(train[(label==sort(unique(label))[1]),]))/nrow(train),nrow(as.matrix(train[(label==sort(unique(label))[2]),]))/nrow(train)),nrow=length(unique(label)))
+  
+  #Define common covariance matrix for all label classes (assumed the same in LDA)
+  a<-probs[1,]*cov(as.matrix(train[(Y==sort(unique(label))[1]),]),y=NULL,use="everything", method=c("pearson","kendall","spearman"))
+  b<-probs[2,]*cov(as.matrix(train[(Y==sort(unique(label))[2]),]),y=NULL,use="everything", method=c("pearson","kendall","spearman"))
+  covmat<-solve(a+b)
+  
+  #Determine the LDA function value for each label class for each test data row and store in op[]
+  op<-t(means%*%covmat%*%t(test)-matrix(rep(apply((0.5)*means%*%covmat%*%t(as.matrix(means))*diag(2),1,sum),nrow(as.matrix(test))),ncol=nrow(as.matrix(test)))+matrix(rep(log(probs),nrow(as.matrix(test))),ncol=nrow(as.matrix(test))))
+ 
+  #Predict label for each test data row based on which function had greater value
+  result<-ifelse(op[,1]>op[,2],sort(unique(label))[1],sort(unique(label))[2])
+  
+  #Determine succes rate(accuracy) of prediction in comparison with true label
+  suc<-sum(ifelse(testlabel==result,1,0))
+  acc <- paste(round(suc*100/nrow(as.matrix(test)),digits=2), "%", sep = "")
+  print(c("LDA Test Accuracy: ",acc))
+  
+}
