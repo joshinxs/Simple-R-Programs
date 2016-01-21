@@ -1,0 +1,99 @@
+#read in the data
+data<-read.table("nci.data.txt",header=F)
+
+data<-t(data)
+label<-read.table("label.txt",header=F)
+
+
+
+#Function for Agglomerative Hierarchical Clustering
+HC<-function(data,label,method){
+
+#Create distance matrix
+d<-as.matrix(dist(data))
+if(method=="single"){d<-lower.tri(d)*d}
+d[d==0]<-Inf
+a<-matrix(seq(1:nrow(data)),ncol=nrow(data))
+b<-matrix(0,nrow=nrow(data)-1,ncol=3)
+
+#extract data points for minimum distance
+for (i in 1:nrow(b)){
+y<-ifelse(nchar(a[i,which(d==min(d),arr.ind=T)[,1]])<=nchar(a[i,which(d==min(d),arr.ind=T)[,2]]),a[i,which(d==min(d),arr.ind=T)[,1]],a[i,which(d==min(d),arr.ind=T)[,2]])
+x<-ifelse(nchar(a[i,which(d==min(d),arr.ind=T)[,1]])>nchar(a[i,which(d==min(d),arr.ind=T)[,2]]),a[i,which(d==min(d),arr.ind=T)[,1]],a[i,which(d==min(d),arr.ind=T)[,2]])
+
+a[i,(a[i,]==y)]<-paste(x[1],y[1],sep=",")
+a[i,(a[i,]==x)]<-paste(x[1],y[1],sep=",")
+
+#rename datapoint
+y<-ifelse(substr(y,1,gregexpr(",",y)[[1]][1]-1)=="",y,substr(y,1,gregexpr(",",y)[[1]][1]-1))[1]
+x<-ifelse(substr(x,1,gregexpr(",",x)[[1]][1]-1)=="",x,substr(x,1,gregexpr(",",x)[[1]][1]-1))[1]
+
+b[i,]<-c(x,y,as.numeric(min(d)))
+
+#data manipulation for different types of linkages
+if(method=="single"){
+d[as.integer(x),]<-apply(d[as.integer(c(x,y)),],2,min)
+d[,as.integer(x)]<-apply(d[,as.integer(c(x,y))],1,min)
+d[as.integer(x),as.integer(x)]<-Inf
+d[,as.integer(y)]<-Inf
+d[as.integer(y),]<-Inf
+}
+
+if(method=="complete"){
+  d[as.integer(x),]<-apply(d[as.integer(c(x,y)),],2,max)
+  d[,as.integer(x)]<-apply(d[,as.integer(c(x,y))],1,max)
+  d[as.integer(x),as.integer(x)]<-Inf
+  d[,as.integer(y)]<-Inf
+  d[as.integer(y),]<-Inf
+}
+
+if(method=="average"){
+  d[as.integer(x),]<-apply(d[as.integer(c(x,y)),],2,mean)
+  d[,as.integer(x)]<-apply(d[,as.integer(c(x,y))],1,mean)
+  d[as.integer(x),as.integer(x)]<-Inf
+  d[,as.integer(y)]<-Inf
+  d[as.integer(y),]<-Inf
+}
+
+a<-rbind(a,a[i,])
+}
+
+
+#structure output for dendrogram display
+c <- list()
+c$merge<-matrix(0,nrow = nrow(b),nc=2,byrow=T)
+
+c$merge[1,]<-c(-1*as.numeric(b[1,1:2]))
+
+for(i in 2:nrow(b)){
+ for(j in (i-1):1){ 
+  if ((b[i,1]==b[j,1]) || (b[i,1]==b[j,2])){
+    c$merge[i,1]<-j
+    break;
+  }
+   else{c$merge[i,1]<--1*as.numeric(b[i,1])}
+ }
+  
+  for(j in (i-1):1){ 
+    if ((b[i,2]==b[j,1]) || (b[i,2]==b[j,2])){
+      c$merge[i,2]<-j
+      break;
+    }
+    else{c$merge[i,2]<--1*as.numeric(b[i,2])}
+  }
+}
+
+c$height<-as.numeric(b[,3])
+c$labels<-c(as.character(label$V1))
+c$order<-c(as.numeric(strsplit(a[(nrow(a)-1),1],",")[[1]]))
+class(c)<-"hclust"
+
+return (c)
+}
+
+
+#Cluster Plots
+plot(HC(data,label,"single"),main="Single Cluster")
+plot(HC(data,label,"complete"),main="Complete Cluster")
+plot(HC(data,label,"average"),main="Average Cluster")
+
