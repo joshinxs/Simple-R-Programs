@@ -1,0 +1,61 @@
+NNfunc<-function(train,test,Y,testY,epochs,M,eta){
+#define the sigmoid function  
+  sigmoid<-function(x){
+    a<-1/(1+exp(-x))
+    return(a)
+  }
+  
+  #set inital values  
+  p<-ncol(train)
+  
+  #set seed as MMDD
+  set.seed(0601)
+  
+  #Initialize weights matrices
+  w1<-matrix(runif(M*(p),-0.7,0.7),M,p)
+  w2<-matrix(runif((M+1),-0.7,0.7),1,M+1)
+  ErrPlot<-matrix(0,nrow=epochs,ncol=3)
+  
+  #Loop for epochs  
+  for(j in 1:epochs){
+    #set initial values for diff weights
+    w2hat<-0
+    w1hat<-0
+    
+    #generate error matrix to capture MSE
+    TrainMSE<-matrix(0,nrow=nrow(train),ncol=1)
+ 
+    #Forward pass       
+    Z<-sigmoid(as.matrix(train)%*%t(w1))
+    YPred<-matrix(c(rep(1,nrow(Z)),Z),nrow=nrow(Z),byrow=F)%*%t(w2)
+    Err<-2*(YPred-Y)
+    TrainMSE<-(YPred-Y)^2  
+ 
+    #Backward propagation       
+    w2hat<-apply(matrix(rep(Err,(M+1)),nrow = length(Err),byrow = F)*matrix(c(rep(1,nrow(Z)),Z),nrow=nrow(Z),byrow=F),2,sum)
+    w1hat<-(t(matrix(c(rep(0,nrow(train)),matrix(rep(Err,M),nrow = nrow(train))*Z*(1-Z)),nrow=nrow(train))*matrix(rep(w2,nrow(train)),nrow = nrow(train),byrow=T))%*%as.matrix(train))[2:(M+1),]
+ 
+    #Adjust weights post back propagation calculations    
+    w1<-w1-(eta/nrow(train))*w1hat
+    w2<-w2 - (eta/nrow(train))*w2hat
+    
+    #Calculate and store Train MSE for each epoch    
+    ErrPlot[j,1:2]<-c(j,sum(TrainMSE)/nrow(train))
+    
+    #Calculate and store Test MSE for each epoch
+    TestMSE<-matrix(0,nrow=nrow(test),ncol=1)
+    Z<-sigmoid(as.matrix(test)%*%t(w1))
+    YPred<-matrix(c(rep(1,nrow(Z)),Z),nrow=nrow(Z),byrow=F)%*%t(w2)
+    TestMSE<-(YPred-testY)^2 
+    
+    ErrPlot[j,3]<-sum(TestMSE)/nrow(test)
+    
+    #Check for stopping condition if desired accuracy isd achieved    
+    if (j>10 && (ErrPlot[j,3]>ErrPlot[(j-1),3])) {
+      break;
+    }
+  }
+  
+  #Return count epoch, Train MSE and TestMSE
+  return(ErrPlot[which(ErrPlot[,3]==min(ErrPlot[1:max(ErrPlot[,1]),3])),])
+}
